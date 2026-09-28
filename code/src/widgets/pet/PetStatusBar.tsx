@@ -4,7 +4,7 @@ import { useTheme } from '@/shared/theme';
 import { Text } from '@/shared/ui/Text';
 import { PixelPanel } from '@/shared/ui/PixelPanel';
 import { levelProgress, levelTitle } from '@/entities/pet/lib/level';
-import { moodReason } from '@/entities/pet/lib/pet-stats';
+import { petComplaints } from '@/entities/pet/lib/pet-stats';
 
 /**
  * Показатели питомца и его стадия (UC-5).
@@ -26,9 +26,9 @@ export type PetStatusBarProps = {
 };
 
 const ROWS = [
-  { key: 'satiety', icon: '🍖', title: 'сыт' },
-  { key: 'mood', icon: '💛', title: 'рад' },
-  { key: 'cleanliness', icon: '🫧', title: 'чист' },
+  { key: 'satiety', icon: '🍖', title: 'сытость' },
+  { key: 'mood', icon: '💛', title: 'радость' },
+  { key: 'cleanliness', icon: '🫧', title: 'чистота' },
 ] as const;
 
 function Gauge({ value }: { value: number }) {
@@ -91,7 +91,7 @@ export function PetStatusBar({
         <Text
           variant="caption"
           tone="secondary"
-          style={{ width: 48 }}
+          style={{ width: 82 }}
           numberOfLines={1}
         >
           опыт
@@ -114,7 +114,7 @@ export function PetStatusBar({
           <Text
             variant="caption"
             tone="secondary"
-            style={{ width: 48 }}
+            style={{ width: 82 }}
             numberOfLines={1}
           >
             {r.title}
@@ -122,9 +122,12 @@ export function PetStatusBar({
           <Gauge value={values[r.key]} />
         </View>
       ))}
-      <Text variant="caption" style={{ maxWidth: 180 }}>
-        {moodReason({ satiety, mood, cleanliness })}
-      </Text>
+      {/* Питомцу плохо — он говорит об этом; всё хорошо — молчит. */}
+      {petComplaints({ satiety, mood, cleanliness }).map(line => (
+        <Text key={line} variant="caption" style={{ maxWidth: 200 }}>
+          {line}
+        </Text>
+      ))}
     </PixelPanel>
   );
 }

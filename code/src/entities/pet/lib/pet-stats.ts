@@ -56,20 +56,44 @@ export function emotionFor(stats: PetStats): PetEmotion {
   return 'sad';
 }
 
+/** Меньше половины — питомец говорит об этом. */
+export const COMPLAIN_BELOW = 50;
+
 /**
- * Почему питомцу так, от первого лица — по самому слабому показателю.
- * Порядок при равенстве тот же, что у emotionFor.
+ * Что питомец говорит сам: только когда ему по-настоящему плохо.
+ * Когда всё хорошо — молчит. Голод и грусть могут идти друг за другом.
+ * Без упрёков ребёнку: питомец говорит о себе, а не о нём.
  */
-export function moodReason(stats: PetStats): string {
-  const weakest = Math.min(stats.satiety, stats.mood, stats.cleanliness);
-  if (weakest >= 70) {
-    return 'Мне хорошо: я сытый, чистый и довольный!';
+export function petComplaints(stats: PetStats): string[] {
+  const lines: string[] = [];
+  if (stats.satiety < COMPLAIN_BELOW) {
+    lines.push('Я очень голоден');
   }
-  if (weakest === stats.satiety) {
-    return 'Я голодный. Покорми меня!';
+  if (stats.mood < COMPLAIN_BELOW) {
+    lines.push('Мне очень грустно');
   }
-  if (weakest === stats.cleanliness) {
-    return 'Я грязный, хочу в ванну.';
+  return lines;
+}
+
+export const HOUR_MS = 60 * 60 * 1000;
+
+/**
+ * Сытость убывает на 1 за каждый полный реальный час — и пока игра
+ * закрыта. Время передаётся аргументом: функция чистая и тестируемая.
+ * `since` — с какого момента считать следующий час: неполный час
+ * не теряется. Ниже пола не опускается — перерыв питомцу не вредит.
+ */
+export function hourlyHunger(
+  stats: PetStats,
+  since: number,
+  now: number,
+): { stats: PetStats; since: number } {
+  const hours = Math.floor(Math.max(0, now - since) / HOUR_MS);
+  if (hours === 0) {
+    return { stats, since };
   }
-  return 'Мне скучно. Погладь меня или купи игрушку.';
+  return {
+    stats: { ...stats, satiety: clamp(stats.satiety - hours) },
+    since: since + hours * HOUR_MS,
+  };
 }

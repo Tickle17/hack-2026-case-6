@@ -74,6 +74,7 @@ export function createInitialState(startNodeId: ScenarioId): GameState {
     plan: null,
     planBaseline: null,
     leftoverToday: null,
+    hungerSince: null,
     spent: { must: 0, want: 0 },
     goalId: null,
     savingsHistory: [],

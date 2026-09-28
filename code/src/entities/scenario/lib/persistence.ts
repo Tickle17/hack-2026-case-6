@@ -219,6 +219,10 @@ export function loadState(port: StatePort): GameState | null {
     plan: asPlan(s.plan),
     planBaseline: asPlan(s.planBaseline),
     spent: asSpent(s.spent),
+    hungerSince:
+      typeof s.hungerSince === 'number' && Number.isFinite(s.hungerSince)
+        ? s.hungerSince
+        : null,
     leftoverToday:
       typeof s.leftoverToday === 'number'
         ? clamp(s.leftoverToday, 0, MAX_BALANCE, 0)

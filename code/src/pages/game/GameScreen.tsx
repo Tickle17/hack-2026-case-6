@@ -1,5 +1,12 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
+  AppState,
   Pressable,
   View,
   Image,
@@ -61,7 +68,7 @@ import { WelcomeScene } from '@/widgets/onboarding/WelcomeScene';
 import { NightScene } from '@/widgets/day/NightScene';
 import { DirtyMark } from '@/widgets/pet/DirtyMark';
 import { PetSays } from '@/widgets/pet/PetSays';
-import { moodReason } from '@/entities/pet/lib/pet-stats';
+import { petComplaints } from '@/entities/pet/lib/pet-stats';
 import {
   DIRECTIONS,
   personalize,
@@ -233,8 +240,12 @@ export function GameScreen({ storage, demo, onExit }: GameScreenProps) {
   } | null>(null);
   const [ledgerOpen, setLedgerOpen] = useState(false);
   const [howtoOpen, setHowtoOpen] = useState(false);
-  /** Что питомец ответил, когда на него нажали. */
+  /** Что питомец говорит сейчас. */
   const [petSays, setPetSays] = useState<string | null>(null);
+  /** Что он скажет следом: жалобы идут одна за другой. */
+  const [sayQueue, setSayQueue] = useState<string[]>([]);
+  /** Можно ли питомцу заговорить самому: он в комнате и ничего не открыто. */
+  const canSpeakRef = useRef(false);
   /** Подсказка, которую ребёнок попросил кнопкой в списке дел. */
   const [askedHint, setAskedHint] = useState<Hint | null>(null);
   /**
@@ -338,9 +349,49 @@ export function GameScreen({ storage, demo, onExit }: GameScreenProps) {
 
   useEffect(() => {
     if (!petSays) return undefined;
-    const timer = setTimeout(() => setPetSays(null), 3000);
+    const timer = setTimeout(() => {
+      // Следующая фраза — после паузы, а не поверх текущей.
+      setPetSays(sayQueue[0] ?? null);
+      setSayQueue(queue => queue.slice(1));
+    }, 3000);
     return () => clearTimeout(timer);
-  }, [petSays]);
+  }, [petSays, sayQueue]);
+
+  /** Питомец говорит свои жалобы по очереди; всё хорошо — молчит. */
+  const speak = useCallback((lines: string[]) => {
+    if (lines.length === 0) return;
+    setPetSays(lines[0]);
+    setSayQueue(lines.slice(1));
+  }, []);
+
+  // Голод идёт по реальным часам — и пока игра закрыта: замер при входе,
+  // при возвращении в игру и раз в минуту, пока она открыта.
+  useEffect(() => {
+    const tickHunger = () => {
+      run.apply([{ do: 'hungerTick', now: Date.now() }]);
+      refresh();
+    };
+    tickHunger();
+    const timer = setInterval(tickHunger, 60 * 1000);
+    const sub = AppState.addEventListener('change', next => {
+      if (next === 'active') tickHunger();
+    });
+    return () => {
+      clearInterval(timer);
+      sub.remove();
+    };
+  }, [run, refresh]);
+
+  // Если питомцу плохо, он говорит об этом сам — время от времени,
+  // когда ребёнок в комнате и ничего не открыто.
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (canSpeakRef.current) {
+        speak(petComplaints(run.state().stats));
+      }
+    }, 25 * 1000);
+    return () => clearInterval(timer);
+  }, [run, speak]);
 
   // Шаг сделан — лапка своё отработала; следующую ребёнок попросит сам.
   useEffect(() => {
@@ -659,6 +710,11 @@ export function GameScreen({ storage, demo, onExit }: GameScreenProps) {
     planNeeded ||
     summaryNeeded ||
     activeGame !== null;
+  canSpeakRef.current =
+    !overlayOpen &&
+    !petSays &&
+    state.petSpeciesId !== null &&
+    run.scene() === 'home';
 
   /**
    * Разделы главного экрана (ТЗ 2.5.3). Недоступные не прячем,
@@ -863,7 +919,7 @@ export function GameScreen({ storage, demo, onExit }: GameScreenProps) {
                 goal={petGoal}
                 onArrive={onPetArrived}
                 onPress={() => {
-                  setPetSays(moodReason(state.stats));
+                  speak(petComplaints(state.stats));
                   refresh();
                 }}
               />

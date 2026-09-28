@@ -1,7 +1,13 @@
 import type { Effect, GameState } from '../model/types';
 import { LEDGER_LIMIT, MAX_BALANCE, MIN_BALANCE } from './state';
 import { goalById } from '../config/goals';
-import { applyDecay, FLOOR, MAX_STAT } from '@/entities/pet/lib/pet-stats';
+import {
+  applyDecay,
+  COMPLAIN_BELOW,
+  FLOOR,
+  hourlyHunger,
+  MAX_STAT,
+} from '@/entities/pet/lib/pet-stats';
 import { sanitizePetName } from '@/entities/pet/lib/appearance';
 import { validateName } from '@/shared/lib/name';
 import { challengeFlag } from './day-flags';
@@ -147,7 +153,15 @@ export function applyEffect(state: GameState, effect: Effect): GameState {
         leftoverToday: null,
         // Показатели медленно снижаются, но НЕ ниже пола: питомцу
         // может быть скучно, беды с ним не случается (CLAUDE.md).
-        stats: applyDecay(state.stats, DAY_MS),
+        // К утру питомец проголодался: сытость меньше половины —
+        // день начинается с того, чтобы его покормить.
+        stats: (() => {
+          const next = applyDecay(state.stats, DAY_MS);
+          return {
+            ...next,
+            satiety: Math.min(next.satiety, COMPLAIN_BELOW - 1),
+          };
+        })(),
       };
 
     case 'planBudget': {
@@ -186,6 +200,14 @@ export function applyEffect(state: GameState, effect: Effect): GameState {
         spent: { ...state.spent, [category]: state.spent[category] + amount },
         ledger: record(state, 'expense', amount, effect.reason, category),
       };
+    }
+
+    case 'hungerTick': {
+      if (state.hungerSince === null) {
+        return { ...state, hungerSince: effect.now };
+      }
+      const hunger = hourlyHunger(state.stats, state.hungerSince, effect.now);
+      return { ...state, stats: hunger.stats, hungerSince: hunger.since };
     }
 
     case 'depositSavings': {

@@ -160,3 +160,49 @@ describe('показатели питомца', () => {
     });
   });
 });
+
+describe('голод в реальном времени', () => {
+  const HOUR = 60 * 60 * 1000;
+  const t0 = 1_700_000_000_000;
+
+  it('первый замер только запоминает время — сытость не трогает', () => {
+    const r = run();
+    const before = r.state().stats.satiety;
+    r.apply([{ do: 'hungerTick', now: t0 }]);
+    expect(r.state().stats.satiety).toBe(before);
+    expect(r.state().hungerSince).toBe(t0);
+  });
+
+  it('через три часа сытость меньше на три', () => {
+    const r = run();
+    const before = r.state().stats.satiety;
+    r.apply([{ do: 'hungerTick', now: t0 }]);
+    r.apply([{ do: 'hungerTick', now: t0 + 3 * HOUR }]);
+    expect(r.state().stats.satiety).toBe(before - 3);
+  });
+
+  it('повторный замер в тот же час ничего не меняет', () => {
+    const r = run();
+    r.apply([{ do: 'hungerTick', now: t0 }]);
+    r.apply([{ do: 'hungerTick', now: t0 + HOUR }]);
+    const after = r.state().stats.satiety;
+    r.apply([{ do: 'hungerTick', now: t0 + HOUR + 1000 }]);
+    expect(r.state().stats.satiety).toBe(after);
+  });
+});
+
+describe('к концу дня питомец проголодался', () => {
+  it('после смены дня сытость меньше половины, даже если он был сыт', () => {
+    const r = run();
+    r.apply([{ do: 'changeStat', stat: 'satiety', amount: 100 }]);
+    r.apply([{ do: 'advanceDay' }]);
+    expect(r.state().stats.satiety).toBeLessThan(50);
+  });
+
+  it('но не ниже пола', () => {
+    const r = run();
+    r.apply([{ do: 'changeStat', stat: 'satiety', amount: -100 }]);
+    r.apply([{ do: 'advanceDay' }]);
+    expect(r.state().stats.satiety).toBe(FLOOR);
+  });
+});

@@ -51,6 +51,11 @@ export type GameState = {
    * приходит после взноса.
    */
   leftoverToday: number | null;
+  /**
+   * С какого момента (мс) считать следующий реальный час голода;
+   * null — ещё не замеряли. Сытость убывает и пока игра закрыта.
+   */
+  hungerSince: number | null;
   /** Выбранная финансовая цель. */
   goalId: string | null;
   /** Сколько раз пополняли копилку и на сколько — для расчёта срока. */
@@ -153,6 +158,8 @@ export type Effect =
   | { do: 'unlockCatalog'; catalogId: string }
   | { do: 'advanceDay' }
   | { do: 'planBudget'; must: number; want: number; save: number }
+  /** Прошло реальное время: сытость −1 за каждый полный час. */
+  | { do: 'hungerTick'; now: number }
   /** Вечер: запланированная доля (не больше кошелька) уходит в копилку. */
   | { do: 'depositSavings' }
   /** Вечер: отложить из остатка дня сверх плана. */

@@ -2,7 +2,9 @@ import {
   applyDecay,
   wellbeing,
   emotionFor,
-  moodReason,
+  petComplaints,
+  hourlyHunger,
+  HOUR_MS,
   DECAY_PER_DAY,
   FLOOR,
 } from './pet-stats';
@@ -61,35 +63,67 @@ describe('благополучие', () => {
   });
 });
 
-describe('причина настроения', () => {
-  it('говорит, что всё хорошо, когда показатели высокие', () => {
-    expect(moodReason(full)).toMatch(/хорошо/);
+describe('что говорит питомец', () => {
+  it('всё хорошо — молчит: никаких «мне хорошо»', () => {
+    expect(petComplaints(full)).toEqual([]);
   });
 
-  it('просит еды, когда слабее всего сытость', () => {
-    expect(moodReason({ satiety: 30, mood: 60, cleanliness: 60 })).toMatch(
-      /[Пп]окорми/,
-    );
+  it('сытость меньше половины — «Я очень голоден»', () => {
+    expect(petComplaints({ satiety: 49, mood: 80, cleanliness: 80 })).toEqual([
+      'Я очень голоден',
+    ]);
   });
 
-  it('просится в ванну, когда слабее всего чистота', () => {
-    expect(moodReason({ satiety: 60, mood: 60, cleanliness: 30 })).toMatch(
-      /ванну/,
-    );
-  });
-
-  it('просит внимания, когда слабее всего настроение', () => {
-    expect(moodReason({ satiety: 60, mood: 30, cleanliness: 60 })).toMatch(
-      /[Пп]огладь/,
+  it('ровно половина — ещё не жалуется', () => {
+    expect(petComplaints({ satiety: 50, mood: 50, cleanliness: 80 })).toEqual(
+      [],
     );
   });
 
-  it('при равенстве объясняет то же, что показывает эмоция', () => {
-    expect(emotionFor({ satiety: 30, mood: 30, cleanliness: 30 })).toBe(
-      'hungry',
-    );
-    expect(moodReason({ satiety: 30, mood: 30, cleanliness: 30 })).toMatch(
-      /[Пп]окорми/,
-    );
+  it('радость меньше половины — «Мне очень грустно»', () => {
+    expect(petComplaints({ satiety: 80, mood: 20, cleanliness: 80 })).toEqual([
+      'Мне очень грустно',
+    ]);
+  });
+
+  it('и голоден, и грустно — фразы идут друг за другом', () => {
+    expect(petComplaints({ satiety: 20, mood: 20, cleanliness: 80 })).toEqual([
+      'Я очень голоден',
+      'Мне очень грустно',
+    ]);
+  });
+});
+
+describe('сытость убывает каждый реальный час', () => {
+  const start = 1_000_000_000_000;
+
+  it('за час — минус одна', () => {
+    const r = hourlyHunger(full, start, start + HOUR_MS);
+    expect(r.stats.satiety).toBe(99);
+    expect(r.since).toBe(start + HOUR_MS);
+  });
+
+  it('неполный час не считается и не теряется', () => {
+    const r = hourlyHunger(full, start, start + HOUR_MS * 2.5);
+    expect(r.stats.satiety).toBe(98);
+    // Остаток в полчаса засчитается со следующим часом.
+    expect(r.since).toBe(start + HOUR_MS * 2);
+  });
+
+  it('радость и чистота от часов не меняются', () => {
+    const r = hourlyHunger(full, start, start + HOUR_MS * 5);
+    expect(r.stats.mood).toBe(100);
+    expect(r.stats.cleanliness).toBe(100);
+  });
+
+  it('долгий перерыв не опускает ниже пола', () => {
+    const r = hourlyHunger(full, start, start + HOUR_MS * 500);
+    expect(r.stats.satiety).toBe(FLOOR);
+  });
+
+  it('часы, переведённые назад, не прибавляют сытость', () => {
+    const r = hourlyHunger(full, start, start - HOUR_MS * 3);
+    expect(r.stats).toEqual(full);
+    expect(r.since).toBe(start);
   });
 });
