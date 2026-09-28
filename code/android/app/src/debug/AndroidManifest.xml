@@ -1,0 +1,8 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!--
+      Только для отладочной сборки: React Native тянет бандл с машины
+      разработчика по сети, а Android 9+ требует явного разрешения на
+      незащищённый трафик к localhost.
+    -->
+    <uses-permission android:name="android.permission.INTERNET" />
+</manifest>

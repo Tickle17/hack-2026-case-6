@@ -1,0 +1,84 @@
+
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+!debug.keystore
+!default.mode1v3
+!default.mode2v3
+!default.pbxuser
+!default.perspectivev3
+#
+# Android/IntelliJ
+# Bundle artifact
+# For more information about the recommended setup visit:
+# It is recommended to not store the screenshots in the git repo. Instead, use fastlane to re-generate the
+# OSX
+# Ruby / CocoaPods
+# Temporary files created by Metro to check the health of the file watcher
+# Xcode
+# Yarn
+# fastlane
+# https://docs.fastlane.tools/best-practices/source-control/
+# node.js
+# screenshots whenever they are needed.
+# testing
+**/.xcode.env.local
+**/Pods/
+**/fastlane/Preview.html
+**/fastlane/report.xml
+**/fastlane/screenshots
+**/fastlane/test_output
+*.hmap
+*.hprof
+*.iml
+*.ipa
+*.jsbundle
+*.keystore
+*.log
+*.mode1v3
+*.mode2v3
+*.moved-aside
+*.pbxuser
+*.perspectivev3
+*.xccheckout
+*.xcuserstate
+.DS_Store
+.claude/settings.local.json
+.cxx/
+.env
+.env.*
+.gradle
+.idea
+.kotlin/
+.metro-health-check*
+.yarn/*
+/coverage
+/vendor/bundle/
+DerivedData
+android/.gradle/
+android/app/build/
+android/build/
+android/local.properties
+build/
+ios/Pods/
+keystore.properties
+local.properties
+node_modules/
+npm-debug.log
+xcuserdata
+yarn-error.log
+
+# Техническое задание заказчика — не публикуем
+*Департамент финансов*.pdf
+
+# Посторонние файлы
+*.torrent
+
+# Нужны для сборки из чистого клона: сам yarn и стандартный отладочный ключ React Native (не секрет)
+!.yarn/releases
+!android/app/debug.keystore
+
+# Python
+__pycache__/
