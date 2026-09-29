@@ -45,7 +45,6 @@
 *.xccheckout
 *.xcuserstate
 .DS_Store
-.claude/settings.local.json
 .cxx/
 .env
 .env.*
@@ -82,3 +81,13 @@ yarn-error.log
 
 # Python
 __pycache__/
+
+# Вне репозитория: настройки ИИ-ассистента, iOS-шаблон (iOS вне объёма),
+# справочные материалы сторонних авторов.
+.claude/
+CLAUDE.md
+ios/
+Gemfile
+Gemfile.lock
+.bundle/
+docs/reference/

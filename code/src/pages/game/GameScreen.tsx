@@ -415,7 +415,7 @@ export function GameScreen({ storage, demo, onExit }: GameScreenProps) {
     if (run.state().plan !== null) {
       return;
     }
-    // Стоимость считает сущность: UI не считает экономику (CLAUDE.md).
+    // Стоимость считает сущность: UI не считает экономику (правила проекта).
     const must = Math.min(mustCost(run.state()), run.state().balance);
     const free = Math.max(0, run.state().balance - must);
     run.apply([
