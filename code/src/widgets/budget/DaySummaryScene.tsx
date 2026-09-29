@@ -155,9 +155,20 @@ export function DaySummaryScene({
   /** Сколько отложить сверх плана из остатка дня. */
   const [extra, setExtra] = useState(0);
   const saveDir = DIRECTIONS.find(d => d.id === 'save')!;
-  /** Сколько всего пришло за день — с учётом выполненных заданий. */
+  /** Монеты за урок сегодня — тоже доход дня, с источником (ТЗ 2.5.4). */
+  const lessonCoins = state.ledger
+    .filter(
+      e =>
+        e.day === state.day &&
+        e.kind === 'income' &&
+        e.reason === 'За урок в школе',
+    )
+    .reduce((sum, e) => sum + e.amount, 0);
+  /** Сколько всего пришло за день — с учётом урока и выполненных заданий. */
   const earned =
-    reward + challenges.reduce((sum, c) => sum + (c.done ? c.reward : 0), 0);
+    reward +
+    lessonCoins +
+    challenges.reduce((sum, c) => sum + (c.done ? c.reward : 0), 0);
 
   if (!summary) {
     return null;
@@ -278,6 +289,11 @@ export function DaySummaryScene({
           <Text variant="caption" style={{ color: theme.color.text.primary }}>
             + {reward} за все дела дня
           </Text>
+          {lessonCoins > 0 ? (
+            <Text variant="caption" style={{ color: theme.color.text.primary }}>
+              {`+ ${lessonCoins} за урок в школе`}
+            </Text>
+          ) : null}
 
           {/* Задания дня: выполненные с наградой, остальные — просто
               без отметки. Не упрекаем: невыполненное задание не

@@ -9,6 +9,17 @@ export type ScenarioId = string;
 
 // ---------------------------------------------------------------- состояние
 
+/** План и факт по одному направлению. */
+export type PlanFact = { planned: number; actual: number };
+
+/** Итог дня, который остаётся видным и после ночи. */
+export type DayRecap = {
+  day: number;
+  must: PlanFact;
+  want: PlanFact;
+  save: PlanFact;
+};
+
 export type GameState = {
   day: number;
   /**
@@ -56,6 +67,8 @@ export type GameState = {
    * null — ещё не замеряли. Сытость убывает и пока игра закрыта.
    */
   hungerSince: number | null;
+  /** Итог прошлого дня: план против факта (ТЗ 2.5.11); null — плана не было. */
+  yesterday: DayRecap | null;
   /** Выбранная финансовая цель. */
   goalId: string | null;
   /** Сколько раз пополняли копилку и на сколько — для расчёта срока. */

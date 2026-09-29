@@ -1,6 +1,5 @@
-import type { GameState, ItemSpec, SpendCategory } from '../model/types';
+import type { GameState, ItemSpec } from '../model/types';
 import { goalById } from '../config/goals';
-import { limitLeft } from './shopping';
 
 /**
  * Короткий ответ на финансовое действие (ТЗ 2.5.9, цель 4 из 2.2).
@@ -11,39 +10,33 @@ import { limitLeft } from './shopping';
 
 const STAT_WORD: Record<NonNullable<ItemSpec['effect']>['stat'], string> = {
   satiety: 'сытость',
-  mood: 'настроение',
+  mood: 'радость',
   cleanliness: 'чистота',
 };
 
-const DIRECTION_WORD: Record<SpendCategory, string> = {
-  must: 'Обязательное',
-  want: 'Развлечения',
-};
-
+/**
+ * `paid` — сколько заплатили на самом деле (в день скидки меньше цены).
+ * Тратят из кошелька, поэтому остаток — по кошельку.
+ */
 export function purchaseFeedback(
   item: ItemSpec,
   stateAfter: GameState,
+  paid: number = item.price,
 ): string {
   const pet = stateAfter.petName || 'питомец';
-  const parts = [`Купил «${item.title}»: −${item.price}.`];
+  const parts = [`Купил «${item.title}»: −${paid}.`];
 
-  if (item.effect) {
-    const change = `${STAT_WORD[item.effect.stat]} +${item.effect.amount}`;
-    // Лакомство действует сразу, расходник — когда им воспользуются.
+  if (item.kind === 'treat' && item.effect) {
+    // Лакомство действует сразу.
     parts.push(
-      item.kind === 'treat' ? `У ${pet}: ${change}.` : `Пригодится: ${change}.`,
+      `У ${pet}: ${STAT_WORD[item.effect.stat]} +${item.effect.amount}.`,
     );
+  } else if (item.effectHint) {
+    // Расходник — когда им воспользуются: подсказка называет дело.
+    parts.push(`Пригодится: ${item.effectHint}.`);
   }
 
-  if (stateAfter.plan) {
-    parts.push(
-      `На «${DIRECTION_WORD[item.category]}» осталось ${limitLeft(
-        stateAfter,
-        item.category,
-      )}.`,
-    );
-  }
-
+  parts.push(`В кошельке ${stateAfter.balance}.`);
   return parts.join(' ');
 }
 

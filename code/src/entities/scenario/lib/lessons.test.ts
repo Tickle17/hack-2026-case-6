@@ -143,3 +143,33 @@ describe('виды заданий чередуются', () => {
     });
   });
 });
+
+// ТЗ 2.5.8: объяснение — независимо от правильности ответа. «Попробуй
+// ещё раз» без подсказки — не объяснение: ребёнок не узнаёт, как думать.
+describe('на неверный ответ учительница объясняет, а не просто повторяет', () => {
+  const RAW: { id: string; riddle: { onWrong: string } }[] =
+    require('../config/lessons.data.json').lessons;
+
+  it.each(RAW.map(l => [l.id, l.riddle.onWrong]))(
+    '%s: в ответе на ошибку есть подсказка',
+    (_id, onWrong) => {
+      const rest = onWrong.replace(/^Почти!\s*/, '');
+      expect(rest).not.toMatch(/^(Попробуй|Посчитай) ещё раз\.?$/);
+      expect(rest.length).toBeGreaterThanOrEqual(20);
+    },
+  );
+});
+
+// ТЗ 2.5.4: у каждого начисления виден источник и сумма — и за урок тоже.
+describe('за урок монеты не приходят молча', () => {
+  it('после объяснения учительница говорит, сколько монет за урок', () => {
+    const { lessonToNodes } = require('./lesson-nodes');
+    const { LESSONS } = require('../config/lessons');
+    const nodes = lessonToNodes(LESSONS[0], { idPrefix: 't', next: 'x' });
+    const explain = nodes.find(
+      (n: { type: string; text?: string }) =>
+        n.type === 'dialogue' && n.text?.startsWith(LESSONS[0].explanation),
+    );
+    expect(explain.text).toContain('Держи 2 монеты за урок!');
+  });
+});

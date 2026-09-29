@@ -23,6 +23,9 @@ import {
   shoppingList,
   shopPhase,
   mustCover,
+  priceFor,
+  goalById,
+  goalProgress,
 } from '@/entities/scenario';
 import type {
   Affordability,
@@ -120,9 +123,12 @@ function ItemCard({
   count,
   bought,
   mustShort,
+  price,
   onPress,
 }: {
   item: ItemSpec;
+  /** Цена сегодня: в день скидки у развлечений она ниже обычной. */
+  price: number;
   verdict: Affordability;
   /** Сколько не хватает в «Обязательном» на этот товар; null — хватает. */
   mustShort: number | null;
@@ -134,7 +140,8 @@ function ItemCard({
 }) {
   const theme = useTheme();
   // Обязательное не блокируем: нехватку можно покрыть, окно подскажет чем.
-  const blocked = bought || (mustShort === null && verdict.kind === 'short');
+  // Нехватку не прячем серой карточкой: нажатие объясняет, что делать.
+  const blocked = bought;
 
   return (
     <PixelPanel
@@ -147,7 +154,7 @@ function ItemCard({
         <Text variant="button" tone={blocked ? 'muted' : 'primary'}>
           {item.title}
         </Text>
-        <Coins amount={item.price} tone={blocked ? 'muted' : 'coin'} />
+        <Coins amount={price} tone={blocked ? 'muted' : 'coin'} />
       </View>
       <View
         style={{
@@ -166,11 +173,14 @@ function ItemCard({
               )}`
             : [
                 item.category === 'must' ? 'обязательное' : 'развлечения',
+                price < item.price ? `скидка, было ${item.price}` : null,
                 count > 1 ? `нужно ещё ${count}` : null,
                 item.effectHint ?? null,
               ]
                 .filter(Boolean)
-                .join(' · ')}
+                .join(' · ')
+                // «радость +30» не разрывается переносом строки.
+                .replace(/ \+/g, '\u00A0+')}
         </Text>
         {mustShort !== null ? null : bought ? (
           <Text variant="caption" tone="muted">
@@ -264,8 +274,28 @@ export function ShopScene({
           paddingHorizontal: theme.space.md,
           flexDirection: 'row',
           justifyContent: 'flex-end',
+          gap: theme.space.xs,
         }}
       >
+        {/* Копилка рядом с кошельком: после покупки видно, что стало
+            и с кошельком, и с накоплениями (ТЗ 2.5.9). */}
+        <PixelPanel
+          ledge={5}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: theme.space.xs,
+            paddingVertical: theme.space.xs,
+            paddingHorizontal: theme.space.sm,
+          }}
+        >
+          <Text variant="caption">Копилка</Text>
+          <Coins
+            amount={state.savings}
+            variant="caption"
+            color={theme.color.text.primary}
+          />
+        </PixelPanel>
         <PixelPanel
           ledge={5}
           color={theme.color.coin}
@@ -368,6 +398,7 @@ export function ShopScene({
                       count={counts[item.id] ?? 0}
                       bought={treatBoughtToday(state, item)}
                       mustShort={mustCover(state, item)?.short ?? null}
+                      price={priceFor(state, item)}
                       onPress={() => setPending(item)}
                     />
                   </HintPaw>
@@ -396,7 +427,15 @@ export function ShopScene({
       </View>
 
       {/* Подтверждение покупки — ТЗ 2.5.6. */}
-      {pending && mustCover(state, pending) ? (
+      {pending &&
+      pending.category === 'want' &&
+      affordability(state, pending).kind === 'short' ? (
+        <TreatShortDialog
+          item={pending}
+          short={(affordability(state, pending) as { short: number }).short}
+          onClose={() => setPending(null)}
+        />
+      ) : pending && mustCover(state, pending) ? (
         <ShortageDialog
           state={state}
           item={pending}
@@ -409,7 +448,8 @@ export function ShopScene({
       ) : pending ? (
         <PurchaseDialog
           item={pending}
-          balanceAfter={state.balance - pending.price}
+          price={priceFor(state, pending)}
+          balanceAfter={state.balance - priceFor(state, pending)}
           onCancel={() => setPending(null)}
           onConfirm={() => confirm(pending)}
         />
@@ -421,11 +461,13 @@ export function ShopScene({
 /** Диалог подтверждения покупки. */
 function PurchaseDialog({
   item,
+  price,
   balanceAfter,
   onConfirm,
   onCancel,
 }: {
   item: ItemSpec;
+  price: number;
   balanceAfter: number;
   onConfirm: () => void;
   onCancel: () => void;
@@ -447,7 +489,7 @@ function PurchaseDialog({
       <PixelPanel ledge={6} style={{ gap: theme.space.sm }}>
         <View style={row}>
           <Text variant="title">{item.title} за</Text>
-          <Coins amount={item.price} variant="title" tone="primary" />
+          <Coins amount={price} variant="title" tone="primary" />
           <Text variant="title">?</Text>
         </View>
         <View style={row}>
@@ -579,6 +621,17 @@ function ShortageDialog({
             <Text variant="body" style={{ textAlign: 'center' }}>
               План на сегодня не будет выполнен
             </Text>
+            {/* Цена решения до «да»: как изменится копилка и срок (ТЗ 2.5.7). */}
+            {savingsAfter(state, asking.fromSavings).map(line => (
+              <Text
+                key={line}
+                variant="caption"
+                tone="secondary"
+                style={{ textAlign: 'center' }}
+              >
+                {line}
+              </Text>
+            ))}
             {button('ДА', () => onPick(asking), null)}
             {button('НЕТ', () => setAsking(null), null, false)}
           </>
@@ -594,7 +647,7 @@ function ShortageDialog({
               }}
             >
               <Text variant="body">
-                {`На ${item.title.toLowerCase()} не хватает`}
+                {`На ${accusative(item.title)} не хватает`}
               </Text>
               <Coins amount={cover.short} variant="button" tone="primary" />
             </View>
@@ -619,4 +672,87 @@ function ShortageDialog({
       </PixelPanel>
     </ScreenOverlay>
   );
+}
+
+/** Как изменится копилка, если взять из неё `take`: строки для ребёнка. */
+function savingsAfter(state: GameState, take: number): string[] {
+  const left = state.savings - take;
+  const goal = state.goalId ? goalById(state.goalId) : undefined;
+  if (!goal) {
+    return [`В копилке станет ${left}.`];
+  }
+  const eta = (savings: number) =>
+    goalProgress({ goal, savings, history: state.savingsHistory }).etaDays;
+  const before = eta(state.savings);
+  const after = eta(left);
+  return [
+    `В копилке станет ${left} из ${goal.price}.`,
+    before != null && after != null
+      ? `${goal.title}: было около ${before} дн., станет около ${after} дн.`
+      : `${goal.title} отодвинется.`,
+  ];
+}
+
+/**
+ * На развлечение не хватает. Копилку не предлагаем: она для цели,
+ * а не для радости сегодня. Объясняем, что можно сделать (ТЗ 2.5.6).
+ */
+function TreatShortDialog({
+  item,
+  short,
+  onClose,
+}: {
+  item: ItemSpec;
+  short: number;
+  onClose: () => void;
+}) {
+  const theme = useTheme();
+  return (
+    <ScreenOverlay
+      background="rgba(20,12,8,0.86)"
+      style={{ justifyContent: 'center', padding: theme.space.lg }}
+    >
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Закрыть"
+        onPress={onClose}
+        style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}
+      />
+      <PixelPanel ledge={6} style={{ gap: theme.space.sm }}>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexWrap: 'wrap',
+            gap: theme.space.xs,
+          }}
+        >
+          <Text variant="body">{`На ${accusative(
+            item.title,
+          )} не хватает`}</Text>
+          <Coins amount={short} variant="button" tone="primary" />
+        </View>
+        <Text variant="body" style={{ textAlign: 'center' }}>
+          Выбери что-то дешевле — или накопи: завтра будут новые монеты.
+        </Text>
+        <PixelPanel
+          ledge={6}
+          onPress={onClose}
+          color={theme.color.surfaceElevated}
+          style={{ alignItems: 'center' }}
+        >
+          <Text variant="button">ПОНЯТНО</Text>
+        </PixelPanel>
+      </PixelPanel>
+    </ScreenOverlay>
+  );
+}
+
+/** «На игрушку», «на корм»: винительный падеж названия товара. */
+function accusative(title: string): string {
+  const word = title.toLowerCase();
+  if (word.endsWith('а')) return `${word.slice(0, -1)}у`;
+  if (word.endsWith('я')) return `${word.slice(0, -1)}ю`;
+  return word;
 }

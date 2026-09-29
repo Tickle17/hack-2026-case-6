@@ -5,6 +5,7 @@ import type {
   SpendCategory,
 } from '../model/types';
 import { ITEMS, TASKS } from '../config/registries';
+import { eventForDay, SALE_DISCOUNT } from '../config/events';
 
 /**
  * Можно ли купить товар.
@@ -25,11 +26,24 @@ export function limitLeft(state: GameState, category: SpendCategory): number {
   return Math.max(0, limit - state.spent[category]);
 }
 
+/**
+ * Цена товара сегодня. В день скидки (событие дня 6) развлечения
+ * дешевле на SALE_DISCOUNT, но не дешевле монеты; обязательное — по
+ * обычной цене: скидка на радость, а не на то, без чего не обойтись.
+ */
+export function priceFor(state: GameState, item: ItemSpec): number {
+  const sale = eventForDay(state.day)?.kind === 'discount';
+  return sale && item.category === 'want'
+    ? Math.max(1, item.price - SALE_DISCOUNT)
+    : item.price;
+}
+
 export function affordability(state: GameState, item: ItemSpec): Affordability {
-  if (state.balance >= item.price) {
+  const price = priceFor(state, item);
+  if (state.balance >= price) {
     return { kind: 'ok' };
   }
-  return { kind: 'short', short: item.price - state.balance };
+  return { kind: 'short', short: price - state.balance };
 }
 
 /**

@@ -37,6 +37,6 @@ Node.js ≥ 22.11, Yarn 3.6.4 (в репозитории), JDK 21, Android SDK 3
 
 ```bash
 yarn tsc --noEmit   # типы
-yarn jest           # 582 теста
+yarn jest           # 637 тестов
 yarn lint
 ```

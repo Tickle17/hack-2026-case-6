@@ -34,16 +34,20 @@ describe('purchaseFeedback', () => {
     expect(text).toMatch(/[Пп]ригодится/);
   });
 
-  // Тратят из направления плана, поэтому и остаток — по нему, а не по кошельку.
-  it('shows what is left in the plan direction the purchase came from', () => {
-    const state = withPet({
-      plan: { must: 9, want: 12, save: 0 },
-      spent: { must: 0, want: 10 },
-    });
-
-    expect(purchaseFeedback(treat, state)).toContain(
-      'На «Развлечения» осталось 2',
+  // Тратят из кошелька: после покупки видно, сколько в нём осталось.
+  it('shows what is left in the wallet after the purchase', () => {
+    expect(purchaseFeedback(treat, withPet({ balance: 7 }))).toContain(
+      'В кошельке 7',
     );
+  });
+
+  it('uses the price actually paid (sale day)', () => {
+    expect(purchaseFeedback(treat, withPet(), 1)).toContain('−1.');
+  });
+
+  it('calls the pet stat «радость», as in the pet panel', () => {
+    const joy = ITEMS.find(i => i.effect?.stat === 'mood')!;
+    expect(purchaseFeedback(joy, withPet())).toContain('радость');
   });
 
   it('falls back to a neutral word when the pet has no name yet', () => {

@@ -188,5 +188,79 @@ describe('магазин', () => {
       expect(text).toContain('ПОНЯТНО');
       expect(text).not.toContain('ВЗЯТЬ ИЗ');
     });
+
+    it('«Ты уверен?» показывает, как изменится копилка', () => {
+      const root = render(
+        { [SHOP_GREETED_FLAG]: true },
+        { ...short, savings: 10, goalId: 'house', savingsHistory: [5, 5] },
+      );
+      openLeash(root);
+      press(root, 'ВЗЯТЬ ИЗ КОПИЛКИ');
+      expect(texts(root)).toContain('В копилке станет 7 из 30');
+    });
+  });
+
+  describe('в магазине видна и копилка (ТЗ 2.5.9)', () => {
+    it('рядом с кошельком — плашка копилки', () => {
+      const text = texts(
+        render({ [SHOP_GREETED_FLAG]: true }, { savings: 7, balance: 12 }),
+      );
+      expect(text).toContain('Копилка');
+      expect(text).toContain('"7"');
+    });
+  });
+
+  describe('на развлечение не хватает (ТЗ 2.5.6, Прил. А шаг 7)', () => {
+    // Всё нужное есть — витрина развлечений; в кошельке 3.
+    const treats = {
+      inventory: { food: 5, shampoo: 5, leash: 1 },
+      plan: { must: 0, want: 3, save: 0 },
+      spent: { must: 0, want: 0 },
+      balance: 3,
+      savings: 0,
+    };
+
+    it('дорогую игрушку можно нажать и узнать, что делать', () => {
+      const root = render({ [SHOP_GREETED_FLAG]: true }, treats);
+      let node: ReactTestRenderer.ReactTestInstance | null = root.root.find(
+        n => n.children.length === 1 && n.children[0] === 'Игрушка',
+      );
+      while (node && typeof node.props.onPress !== 'function') {
+        node = node.parent;
+      }
+      ReactTestRenderer.act(() => node!.props.onPress());
+      const text = texts(root);
+      expect(text).toContain('На игрушку не хватает');
+      expect(text).toContain('Выбери что-то дешевле');
+      expect(text).toContain('ПОНЯТНО');
+      // Копилку на развлечения не предлагаем.
+      expect(text).not.toContain('ВЗЯТЬ ИЗ КОПИЛКИ');
+    });
+  });
+
+  describe('после покупки (ТЗ 2.5.9)', () => {
+    it('продавец не пересказывает покупку: её видно в кошельке и в истории', () => {
+      const onBuy = jest.fn();
+      const root = render(
+        { [SHOP_GREETED_FLAG]: true },
+        { plan: { must: 6, want: 3, save: 3 }, balance: 12 },
+        { onBuy },
+      );
+      const press = (label: string) => {
+        let node: ReactTestRenderer.ReactTestInstance | null = root.root.find(
+          n => n.children.length === 1 && n.children[0] === label,
+        );
+        while (node && typeof node.props.onPress !== 'function') {
+          node = node.parent;
+        }
+        ReactTestRenderer.act(() => node!.props.onPress());
+      };
+      press('Корм');
+      press('КУПИТЬ');
+      expect(onBuy).toHaveBeenCalled();
+      const text = texts(root);
+      expect(text).not.toContain('Купил');
+      expect(text).toContain('Кошелёк');
+    });
   });
 });

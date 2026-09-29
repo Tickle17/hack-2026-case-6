@@ -37,6 +37,7 @@ import { PlanScene } from '@/widgets/budget/PlanScene';
 import { GoalScene } from '@/widgets/budget/GoalScene';
 import { DaySummaryScene } from '@/widgets/budget/DaySummaryScene';
 import { PetStatusBar } from '@/widgets/pet/PetStatusBar';
+import { PetStatsBadge } from '@/widgets/pet/PetStatsBadge';
 import { EdgePanel } from '@/shared/ui/EdgePanel';
 import { setAppIcon } from '@/shared/lib/appIcon';
 import { PlanView } from '@/widgets/budget/PlanView';
@@ -68,7 +69,7 @@ import { WelcomeScene } from '@/widgets/onboarding/WelcomeScene';
 import { NightScene } from '@/widgets/day/NightScene';
 import { DirtyMark } from '@/widgets/pet/DirtyMark';
 import { PetSays } from '@/widgets/pet/PetSays';
-import { petComplaints } from '@/entities/pet/lib/pet-stats';
+import { emotionFor, petComplaints } from '@/entities/pet/lib/pet-stats';
 import {
   DIRECTIONS,
   personalize,
@@ -85,6 +86,7 @@ import {
   shopPhase,
   coverAndBuyEffects,
   savedToday,
+  priceFor,
   purchaseEffects,
   DIRTY_BELOW,
   type TaskBlock,
@@ -904,7 +906,7 @@ export function GameScreen({ storage, demo, onExit }: GameScreenProps) {
             {state.petSpeciesId && run.scene() === 'home' ? (
               <PetActor
                 speciesId={speciesId}
-                emotion="happy"
+                emotion={emotionFor(state.stats)}
                 roomWidth={roomWidth}
                 roomHeight={roomHeight}
                 paused={(isDialogue || node.type === 'choice') && !bowl}
@@ -946,7 +948,7 @@ export function GameScreen({ storage, demo, onExit }: GameScreenProps) {
           </RoomView>
         </View>
 
-        {/* Шапка: день и монеты видны всегда */}
+        {/* Шапка: показатели питомца, копилка и монеты видны всегда */}
         <View
           style={{
             // Вставки берём из safe-area, а не из StatusBar: снизу
@@ -964,17 +966,18 @@ export function GameScreen({ storage, demo, onExit }: GameScreenProps) {
               неё единственный путь в магазин, копилку и раздел для
               взрослого. */}
           <View style={{ gap: theme.space.sm, flexShrink: 1, minWidth: 0 }}>
-            {!giftScene ? (
-              <PixelPanel
-                ledge={6}
-                style={{
-                  paddingVertical: theme.space.xs,
-                  paddingHorizontal: theme.space.sm,
-                  alignSelf: 'flex-start',
-                }}
-              >
-                <Text variant="caption">ДЕНЬ {state.day}</Text>
-              </PixelPanel>
+            {/* Показатели питомца вместо номера дня: ТЗ 2.5.3 требует
+                видеть их одновременно с балансом, без нажатия. День
+                виден на экранах ночи, плана и итога. */}
+            {!giftScene && state.petSpeciesId ? (
+              <View style={{ alignSelf: 'flex-start', flexShrink: 1 }}>
+                <PetStatsBadge
+                  satiety={state.stats.satiety}
+                  mood={state.stats.mood}
+                  cleanliness={state.stats.cleanliness}
+                  onPress={() => setEdgePanel('pet')}
+                />
+              </View>
             ) : null}
           </View>
           <View
@@ -1795,13 +1798,13 @@ export function GameScreen({ storage, demo, onExit }: GameScreenProps) {
             state={state}
             hintTarget={hint?.target ?? null}
             onBuy={item => {
-              // Тратим из направления, а не из общего кошелька: так план
-              // и факт остаются сопоставимыми (UC-4).
+              // Трата записывается в своё направление: вечером план
+              // сравнивается с фактом (UC-4). Цена — сегодняшняя, со скидкой.
               run.apply([
                 {
                   do: 'spendFrom',
                   category: item.category,
-                  amount: item.price,
+                  amount: priceFor(state, item),
                   reason: item.title,
                 },
                 { do: 'giveItem', itemId: item.id },

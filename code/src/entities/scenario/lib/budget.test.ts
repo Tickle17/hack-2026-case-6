@@ -218,3 +218,29 @@ describe('копилка и цель', () => {
     expect(goalEta({ price: 30, saved: 0, perDay: 0 })).toBeNull();
   });
 });
+
+describe('итог прошлого дня не пропадает (ТЗ 2.5.11)', () => {
+  it('после ночи видно, что планировал и что вышло вчера', () => {
+    const r = run(12);
+    r.apply([{ do: 'planBudget', must: 6, want: 4, save: 2 }]);
+    r.apply([
+      { do: 'spendFrom', category: 'must', amount: 6, reason: 'Корм' },
+      { do: 'spendFrom', category: 'want', amount: 1, reason: 'Бантик' },
+      { do: 'depositSavings' },
+      { do: 'advanceDay' },
+    ]);
+
+    expect(r.state().yesterday).toEqual({
+      day: 1,
+      must: { planned: 6, actual: 6 },
+      want: { planned: 4, actual: 1 },
+      save: { planned: 2, actual: 2 },
+    });
+  });
+
+  it('без плана вчера сравнивать нечего', () => {
+    const r = run(12);
+    r.apply([{ do: 'advanceDay' }]);
+    expect(r.state().yesterday).toBeNull();
+  });
+});

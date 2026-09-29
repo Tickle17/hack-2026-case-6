@@ -31,6 +31,7 @@ export {
   shopPhase,
   mustCover,
   coverAndBuyEffects,
+  priceFor,
 } from './lib/shopping';
 export type { Affordability, CoverOption } from './lib/shopping';
 export { taskBlocker, DIRTY_BELOW } from './lib/tasks';

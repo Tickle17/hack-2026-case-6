@@ -143,8 +143,21 @@ export function applyEffect(state: GameState, effect: Effect): GameState {
     case 'advanceDay':
       // Обнуляются ТОЛЬКО счётчики дел, план и факт за день.
       // Накопленное не сгорает — см. принцип 4 в docs/game-design.md.
+      const base = state.planBaseline ?? state.plan;
+      const savedToday = state.ledger
+        .filter(e => e.day === state.day && e.kind === 'savings')
+        .reduce((sum, e) => sum + e.amount, 0);
       return {
         ...state,
+        // Итог дня остаётся видным и завтра (ТЗ 2.5.11).
+        yesterday: base
+          ? {
+              day: state.day,
+              must: { planned: base.must, actual: state.spent.must },
+              want: { planned: base.want, actual: state.spent.want },
+              save: { planned: base.save, actual: savedToday },
+            }
+          : null,
         day: state.day + 1,
         tasksToday: {},
         plan: null,

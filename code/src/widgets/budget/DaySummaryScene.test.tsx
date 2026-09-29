@@ -104,4 +104,23 @@ describe('итог дня', () => {
     ReactTestRenderer.act(() => node!.props.onPress());
     expect(onNext).toHaveBeenCalledWith(0);
   });
+
+  it('монеты за урок видны в «Заработал сегодня» с источником', () => {
+    const r = createRun(INTRO, REGISTRIES);
+    REGISTRIES.items
+      .filter(i => i.category === 'must')
+      .forEach(i =>
+        r.apply(
+          [1, 2, 3].map(() => ({ do: 'giveItem' as const, itemId: i.id })),
+        ),
+      );
+    r.apply([{ do: 'grantCoins', amount: 12, reason: 'тест' }]);
+    r.apply([{ do: 'planBudget', must: 6, want: 4, save: 2 }]);
+    r.apply([
+      { do: 'rewardLesson', lessonId: 'lesson.needs-first', amount: 2 },
+      { do: 'depositSavings' },
+    ]);
+    const text = texts(render(r.state()));
+    expect(text).toContain('+ 2 за урок в школе');
+  });
 });

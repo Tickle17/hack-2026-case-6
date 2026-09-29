@@ -219,6 +219,7 @@ export function loadState(port: StatePort): GameState | null {
     plan: asPlan(s.plan),
     planBaseline: asPlan(s.planBaseline),
     spent: asSpent(s.spent),
+    yesterday: asRecap(s.yesterday),
     hungerSince:
       typeof s.hungerSince === 'number' && Number.isFinite(s.hungerSince)
         ? s.hungerSince
@@ -256,4 +257,28 @@ export function clearState(port: StatePort): void {
   } catch {
     // Нечего чистить — не беда.
   }
+}
+
+function asPlanFact(
+  value: unknown,
+): { planned: number; actual: number } | null {
+  if (!value || typeof value !== 'object') return null;
+  const v = value as Record<string, unknown>;
+  if (typeof v.planned !== 'number' || typeof v.actual !== 'number')
+    return null;
+  return {
+    planned: clamp(v.planned, 0, MAX_BALANCE, 0),
+    actual: clamp(v.actual, 0, MAX_BALANCE, 0),
+  };
+}
+
+/** Итог прошлого дня: битый — просто не показываем. */
+function asRecap(value: unknown): GameState['yesterday'] {
+  if (!value || typeof value !== 'object') return null;
+  const v = value as Record<string, unknown>;
+  const must = asPlanFact(v.must);
+  const want = asPlanFact(v.want);
+  const save = asPlanFact(v.save);
+  if (typeof v.day !== 'number' || !must || !want || !save) return null;
+  return { day: Math.max(1, Math.round(v.day)), must, want, save };
 }

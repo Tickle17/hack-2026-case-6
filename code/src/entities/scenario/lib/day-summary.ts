@@ -127,9 +127,7 @@ export function daySummary(state: GameState): DaySummary | null {
       ...base,
       message:
         leftover > 0
-          ? `${leftover} ${coins(
-              leftover,
-            )} осталось в кошельке, а нужное не куплено.`
+          ? `${leftPhrase(leftover)} в кошельке, а нужное не куплено.`
           : 'Монеты потратил, а нужное не куплено.',
       nextStep: recoveryStep(state),
     };
@@ -164,11 +162,13 @@ export function daySummary(state: GameState): DaySummary | null {
   if (leftover > 0) {
     return {
       ...base,
-      message: `Потратил меньше, чем планировал. ${leftover} ${coins(
+      message: `Потратил меньше, чем планировал. ${leftPhrase(
         leftover,
-      )} осталось в кошельке.`,
+      )} в кошельке.`,
       // Не «надо было», а «можно»: решение остаётся за ребёнком.
-      nextStep: 'Их можно отложить в копилку прямо сейчас.',
+      nextStep: `${
+        leftover % 10 === 1 && leftover % 100 !== 11 ? 'Её' : 'Их'
+      } можно отложить в копилку прямо сейчас.`,
     };
   }
 
@@ -193,4 +193,19 @@ function coins(n: number): string {
     return 'монеты';
   }
   return 'монет';
+}
+
+/** «1 монета осталась», «3 монеты остались», «5 монет осталось». */
+function leftPhrase(n: number): string {
+  const last = n % 10;
+  const tens = n % 100;
+  const verb =
+    tens >= 11 && tens <= 14
+      ? 'осталось'
+      : last === 1
+      ? 'осталась'
+      : last >= 2 && last <= 4
+      ? 'остались'
+      : 'осталось';
+  return `${n} ${coins(n)} ${verb}`;
 }

@@ -74,7 +74,9 @@ export function lessonToNodes(
       id: explain,
       type: 'dialogue',
       speaker: 'teacher',
-      text: lesson.explanation,
+      // Монеты за урок называем вслух: ТЗ 2.5.4 — у начисления виден
+      // источник и сумма, молча баланс не меняется.
+      text: `${lesson.explanation} Держи ${LESSON_REWARD} монеты за урок!`,
       pose: 'point',
       next: unlock,
     },

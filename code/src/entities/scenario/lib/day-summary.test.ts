@@ -224,3 +224,22 @@ describe('итог сравнивает с утренним планом', () =>
     expect(save.planned).toBe(9);
   });
 });
+
+describe('остаток называется по-русски правильно', () => {
+  it('одна монета — «осталась», «её»', () => {
+    const s = daySummary(day(6, 4, 0, 6, 3).state())!;
+    expect(s.message).toContain('1 монета осталась в кошельке');
+    expect(s.nextStep).toContain('Её можно отложить');
+  });
+
+  it('три монеты — «остались», «их»', () => {
+    const s = daySummary(day(6, 4, 0, 6, 1).state())!;
+    expect(s.message).toContain('3 монеты остались в кошельке');
+    expect(s.nextStep).toContain('Их можно отложить');
+  });
+
+  it('пять монет — «осталось», «их»', () => {
+    const s = daySummary(day(9, 5, 0, 9, 0).state())!;
+    expect(s.message).toContain('5 монет осталось в кошельке');
+  });
+});

@@ -145,6 +145,26 @@ export function ProgressScene({ state, onClose }: ProgressSceneProps) {
         )}
 
         {/* Итог последнего дня */}
+        {/* Итог прошлого дня остаётся и после ночи (ТЗ 2.5.11). */}
+        {state.yesterday ? (
+          <PixelPanel ledge={6} style={{ gap: theme.space.xs }}>
+            <Text variant="button">{`Вчера, день ${state.yesterday.day}`}</Text>
+            {(['must', 'want', 'save'] as const).map(id => (
+              <Text key={id} variant="caption" tone="secondary">
+                {`${
+                  id === 'must'
+                    ? 'обязательное'
+                    : id === 'want'
+                    ? 'развлечения'
+                    : 'копилка'
+                }: планировал ${state.yesterday![id].planned}, ${
+                  id === 'save' ? 'отложил' : 'потратил'
+                } ${state.yesterday![id].actual}`}
+              </Text>
+            ))}
+          </PixelPanel>
+        ) : null}
+
         {summary ? (
           <PixelPanel ledge={6} style={{ gap: theme.space.xs }}>
             <Text variant="button">Сегодня</Text>

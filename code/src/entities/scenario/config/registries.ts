@@ -68,7 +68,7 @@ export const ITEMS: ItemSpec[] = [
     kind: 'consumable',
     category: 'must',
     catalogId: 'main',
-    effectHint: 'чистота +20',
+    effectHint: 'искупать: чистота +50',
     effect: { stat: 'cleanliness', amount: 20 },
   },
   // prettier-ignore
@@ -79,7 +79,7 @@ export const ITEMS: ItemSpec[] = [
     kind: 'consumable',
     category: 'must',
     catalogId: 'main',
-    effectHint: 'сытость +20',
+    effectHint: 'покормить: сытость +32',
     effect: { stat: 'satiety', amount: 20 },
   },
   // prettier-ignore
@@ -90,7 +90,7 @@ export const ITEMS: ItemSpec[] = [
     kind: 'consumable',
     category: 'must',
     catalogId: 'main',
-    effectHint: 'нужен для прогулки',
+    effectHint: 'выгулять: радость +12',
     effect: { stat: 'mood', amount: 10 },
   },
   // Приятное — стоит не меньше дневного дохода. Это правило, не совпадение.
@@ -102,7 +102,7 @@ export const ITEMS: ItemSpec[] = [
     kind: 'treat',
     category: 'want',
     catalogId: 'main',
-    effectHint: 'настроение +30',
+    effectHint: 'радость +30',
     effect: { stat: 'mood', amount: 30 },
   },
   // Мелкие радости по карману в тот же день: после обязательных 9
@@ -115,7 +115,7 @@ export const ITEMS: ItemSpec[] = [
     kind: 'treat',
     category: 'want',
     catalogId: 'main',
-    effectHint: 'настроение +5',
+    effectHint: 'радость +5',
     effect: { stat: 'mood', amount: 5 },
   },
   // prettier-ignore
@@ -137,7 +137,7 @@ export const ITEMS: ItemSpec[] = [
     kind: 'treat',
     category: 'want',
     catalogId: 'main',
-    effectHint: 'настроение +15',
+    effectHint: 'радость +15',
     effect: { stat: 'mood', amount: 15 },
   },
   // prettier-ignore
@@ -148,7 +148,7 @@ export const ITEMS: ItemSpec[] = [
     kind: 'treat',
     category: 'want',
     catalogId: 'clothes',
-    effectHint: 'настроение +20',
+    effectHint: 'радость +20',
     effect: { stat: 'mood', amount: 20 },
   },
 ];

@@ -11,6 +11,7 @@ import {
   treatBoughtToday,
   mustCover,
   coverAndBuyEffects,
+  priceFor,
 } from './shopping';
 import { taskBlocker } from './tasks';
 import type { ScenarioRun } from './interpreter';
@@ -318,5 +319,37 @@ describe('не хватает на обязательное: можно взят
     const option = mustCover(r.state(), shampoo)!.options[0];
     r.apply(coverAndBuyEffects(r.state(), shampoo, option));
     expect(taskBlocker(r.state(), 'bath')).toBeNull();
+  });
+});
+
+describe('скидка дня 6: игрушки дешевле', () => {
+  const item = (id: string) => REGISTRIES.items.find(i => i.id === id)!;
+  const onDay = (day: number) => {
+    const r = wallet(20);
+    while (r.state().day < day) {
+      r.apply([{ do: 'advanceDay' }]);
+    }
+    return r.state();
+  };
+
+  it('в день скидки развлечения дешевле на 1', () => {
+    expect(priceFor(onDay(6), item('ball'))).toBe(price('ball') - 1);
+  });
+
+  it('дешевле монеты не бывает', () => {
+    expect(priceFor(onDay(6), item('bow'))).toBe(1);
+  });
+
+  it('обязательное по обычной цене', () => {
+    expect(priceFor(onDay(6), item('food'))).toBe(price('food'));
+  });
+
+  it('в другие дни скидки нет', () => {
+    expect(priceFor(onDay(7), item('ball'))).toBe(price('ball'));
+  });
+
+  it('хватает ли — считается по цене со скидкой', () => {
+    const s = { ...onDay(6), balance: price('ball') - 1 };
+    expect(affordability(s, item('ball')).kind).toBe('ok');
   });
 });
